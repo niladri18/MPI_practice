@@ -258,7 +258,7 @@ int main()
 	/* Must clean the array memory */
 	clean(A,n,n);
 	clean(half[0], n/2+1, n);
-	clean(half[0], n/2+1, n);
+	clean(half[1], n/2+1, n);
 
 	/* Finalize MPI */
 	MPI_Finalize();
