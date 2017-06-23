@@ -7,14 +7,15 @@
 
 using namespace std;
 
-const int n = 10;
+
+/* Global variables */
+const int n = 20;
 int **A;
-//int **newA;
 int **up;
 int **dn;
+int ***half;
 const int nbrx[4] = {1,0,-1,0};
 const int nbry[4] = {0,1,0,-1};
-//int rank,size;
 
 
 
@@ -39,12 +40,25 @@ void initialize(int **A)
 		}
 	}
 
-	//return A;	
 }
 
 
-void decompose()
+void show(int **arr, int row, int col)
 {
+	/* Print a 2D array with dimension row x col */
+        for (int i = 0; i < row; i++)
+        {
+                for (int j = 0; j < col; j++)
+		{
+                       	cout << arr[i][j]<<" ";
+                }
+                        cout << "" <<endl;
+        }
+}                       
+
+void decompose(int **A, int **up, int **dn)
+{
+	/* Non parallel domain decomposition */
 	for (int i= 0; i < n/2 +1; i++)
 	{
 		for (int j = 0; j < n; j++)	
@@ -55,6 +69,23 @@ void decompose()
 	}
 
 }
+
+
+void decompose_mpi(int **A, int ***arr, int rank)
+{
+	/* Parallel domain decomposition */
+        for (int i= 0; i < n/2 +1; i++)
+        {
+                for (int j = 0; j < n; j++)
+                {
+			int k = rank*(n/2-1);
+                        arr[rank][i][j] = A[k + i][j];
+                }
+        }
+	/* Show the two domains */
+	//show(arr[rank], n/2+1, n);
+}
+
 
 int update(int **A)
 {
@@ -97,6 +128,9 @@ int update(int **A)
 			}
 		}
 	}
+
+	
+	
 	
 	/* update A  and calculate number of living cells*/
 	live_cells = 0;
@@ -115,19 +149,16 @@ int update(int **A)
 	return live_cells;
 }
 
-void show(int **A)
+
+void clean(int **arr, int row, int col)
 {
-	for (int i = 0; i < n; i++)
+	for(int i = 0; i < col; i++)
 	{
-		for (int j = 0; j < n; j++)
-{
-			//printf(" %d,",A[i][j]);
-			cout << A[i][j];
-		}
-		//printf("\n");
-		cout << "" <<endl;
+		delete[] arr[i];
 	}
+	delete arr;
 }
+
 
 int main()
 {
@@ -149,27 +180,85 @@ int main()
                 A[i] = new int[n];
         }
 
+        /* Allocate upper half of domain */
+	half = new int **[2];
+        up = new int *[n/2 + 1];
+	half[0] = new int *[n/2 + 1];
+	half[1] = new int *[n/2 + 1];
+        for (int i = 0; i < n; i++)
+        {
+                up[i] = new int[n];
+		half[0][i] = new int[n];
+		half[1][i] = new int[n];
+        }
+
+
+        /* Allocate lower half of domain */
+        dn = new int *[n/2 + 1];
+        for (int i = 0; i < n; i++)
+        {
+                dn[i] = new int[n];
+        }
+
+
 	
-	printf("Processor %d : Hello world!\n",myrank, size);	
+	printf("Processor %d : Hello world! \n",myrank, size);	
 	/* Initialize the population */
 	initialize(A);
-	show(A);
-	/*
-	decompose();
-	*/
-	int live_cells;
-	
-	/* Iterate for updates */
-	
-	for (int iter = 0; iter < 5; iter++)
+	if (myrank == 0) 
 	{
-		live_cells = update(A);
-		cout<<live_cells<<endl;
-				
+		show(A,n,n);
+	}
+	//decompose(A,up,dn);
+
+	/* Domain decomposition */	
+	if (size > 1)
+	{
+		printf("halfdomain[%d]\n",myrank);
+		decompose_mpi( A, half, myrank);
+		/* Print the two domains */
+		show(half[myrank], n/2+1, n);
+		cout <<""<<endl;
+	}
+	else
+	{	
+		decompose( A, half[0] , half[1] );
+		/* Print the two domains */
+		for (int k = 0; k < 2; k++)
+		{
+			printf("halfdomain[%d]\n",k);
+			show(half[k], n/2+1, n);	
+		}
 	}
 
+	
+
+	/* Show domain up and dn 
+	show(up, n/2+1, n);
+	cout <<""<<endl;
+	show(dn, n/2+1, n);
+	*/
+	int live_cells;
+
+
+	/* Iterate for updates */
+	if (size < 2)
+	{
+		
+		for (int iter = 0; iter < 5; iter++)
+		{
+			live_cells = update(A);
+			cout<<live_cells<<endl;
+				
+		}
+	}
 	/* show final configuration */
-	show(A);
+	//show(A,n,n);
+	
+	/* Must clean the array memory */
+	clean(A,n,n);
+	clean(half[0], n/2+1, n);
+	clean(half[0], n/2+1, n);
 
 	/* Finalize MPI */
 	MPI_Finalize();
