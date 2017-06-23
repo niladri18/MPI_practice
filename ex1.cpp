@@ -7,17 +7,21 @@
 
 using namespace std;
 
-const int n = 200;
-int A[n][n];
-int newA[n][n];
-int up[n+1][n/2 + 1];
-int dn[n+1][n/2 + 1];
+const int n = 10;
+int **A;
+//int **newA;
+int **up;
+int **dn;
 const int nbrx[4] = {1,0,-1,0};
 const int nbry[4] = {0,1,0,-1};
 //int rank,size;
 
-void initialize()
+
+
+void initialize(int **A)
 {
+	
+	/* Initialize A */
 	double x;
 	for (int i = 0; i < n; i++)
 	{
@@ -34,7 +38,8 @@ void initialize()
 			}
 		}
 	}
-	
+
+	//return A;	
 }
 
 
@@ -51,8 +56,16 @@ void decompose()
 
 }
 
-int update()
+int update(int **A)
 {
+
+	/* Allocate newA */
+	int **newA;
+	newA = new int *[n];
+	for (int i = 0; i < n; i++)
+	{
+		newA[i] = new int [n];	
+	}
 	/* Game of life algorithm */
 	int k1;
 	int k2;
@@ -102,7 +115,7 @@ int update()
 	return live_cells;
 }
 
-void show()
+void show(int **A)
 {
 	for (int i = 0; i < n; i++)
 	{
@@ -127,22 +140,36 @@ int main()
 
 	/* Get the rank of current processor */
 	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+
+        /* Allocate A */
+        A = new int *[n];
+        for (int i = 0; i < n; i++)
+        {
+                A[i] = new int[n];
+        }
+
 	
 	printf("Processor %d : Hello world!\n",myrank, size);	
 	/* Initialize the population */
-	initialize();
+	initialize(A);
+	show(A);
+	/*
 	decompose();
+	*/
 	int live_cells;
+	
 	/* Iterate for updates */
+	
 	for (int iter = 0; iter < 5; iter++)
 	{
-		live_cells = update();
+		live_cells = update(A);
 		cout<<live_cells<<endl;
 				
 	}
-	
+
 	/* show final configuration */
-	//show();
+	show(A);
 
 	/* Finalize MPI */
 	MPI_Finalize();
