@@ -10,6 +10,8 @@ using namespace std;
 const int n = 200;
 int A[n][n];
 int newA[n][n];
+int up[n+1][n/2 + 1];
+int dn[n+1][n/2 + 1];
 const int nbrx[4] = {1,0,-1,0};
 const int nbry[4] = {0,1,0,-1};
 //int rank,size;
@@ -33,6 +35,20 @@ void initialize()
 		}
 	}
 	
+}
+
+
+void decompose()
+{
+	for (int i= 0; i < n/2 +1; i++)
+	{
+		for (int j = 0; j < n; j++)	
+		{
+			up[i][j] = A[i][j];
+			dn[i][j] = A[n/2-1+i][j];
+		}
+	}
+
 }
 
 int update()
@@ -115,7 +131,7 @@ int main()
 	printf("Processor %d : Hello world!\n",myrank, size);	
 	/* Initialize the population */
 	initialize();
-
+	decompose();
 	int live_cells;
 	/* Iterate for updates */
 	for (int iter = 0; iter < 5; iter++)
